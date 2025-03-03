@@ -1,0 +1,42 @@
+//loading the model and making predictions
+
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_ml_model_downloader/firebase_ml_model_downloader.dart';
+import 'package:tflite_flutter/tflite_flutter.dart';
+
+Future<void> loadAndRunModel() async {
+  await Firebase.initializeApp();
+
+  FirebaseCustomModel model = await FirebaseModelDownloader.instance.getModel(
+    "your_model_name", FirebaseModelDownloadType.localModelUpdateInBackground
+  );
+
+  Interpreter interpreter = Interpreter.fromFile(model.file);
+  var input = ...; // Preprocess your input image
+  var output = List.filled(1 * numClasses, 0).reshape([1, numClasses]);
+
+  interpreter.run(input, output);
+  print(output);
+}
+
+
+//sending an image to firebase function
+
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+Future<void> sendImageToFirebase(File imageFile) async {
+  var request = http.MultipartRequest(
+    'POST', Uri.parse('https://your-cloud-function-url/predict')
+  );
+  request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+  var response = await request.send();
+
+  if (response.statusCode == 200) {
+    print(await response.stream.bytesToString());
+  } else {
+    print("Error: ${response.statusCode}");
+  }
+}
